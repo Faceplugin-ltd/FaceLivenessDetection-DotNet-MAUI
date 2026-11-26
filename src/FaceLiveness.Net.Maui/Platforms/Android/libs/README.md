@@ -5,7 +5,7 @@ two libraries.
 
 | File | What it is | Where it comes from |
 | ---- | ---------- | ------------------- |
-| `facerecognitionsdk.aar` | The engine (LX / Luxand build) | `Face-LivenessDetection-Android/libs/` |
+| `facerecognitionsdk.aar` | The engine (FacePlugin engine build) | `Face-LivenessDetection-Android/libs/` |
 | `face-liveness-kit.aar` | Engine lifecycle, camera frames, per-frame face attributes | built from `Face-LivenessDetection-Android` |
 | `face-liveness-active.aar` | The whole guided active-liveness screen | built from `Face-LivenessDetection-Android` |
 

@@ -6,7 +6,7 @@ Six bundles belong here and **none of them are in git**.
 | ------ | ---------- | ------------------- |
 | `FaceLivenessBridge.xcframework` | The Objective-C face of the native liveness screens | built from `Face-LivenessDetection-iOS` |
 | `FaceLivenessKit.xcframework` | The engine lifecycle the bridge calls | built from `Face-LivenessDetection-iOS` |
-| `facerecognitionsdk.framework` | The engine wrapper (LX / Luxand build) | Face-Recognition-LivenessDetection-iOS release |
+| `facerecognitionsdk.framework` | The engine wrapper (FacePlugin engine build) | Face-Recognition-LivenessDetection-iOS release |
 | `FacePluginSDK.xcframework` | Vendor runtime the wrapper links | same release |
 | `FacePlugin.xcframework` | Vendor runtime the wrapper links | same release |
 | `FaceDetect.xcframework` | Vendor detector the wrapper links | same release |
