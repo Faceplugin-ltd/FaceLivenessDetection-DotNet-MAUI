@@ -1,0 +1,75 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<!--
+		Binds FaceLivenessBridge.framework — the Objective-C face of the native iOS liveness
+		screens, built from Face-LivenessDetection-iOS with `scripts/build_bridge.sh`.
+
+		This is a separate project because .NET only accepts ObjcBindingApiDefinition in a binding
+		project, not in an app. The app references it for net8.0-ios only.
+	-->
+	<PropertyGroup>
+		<TargetFramework>net8.0-ios</TargetFramework>
+		<SupportedOSPlatformVersion>15.0</SupportedOSPlatformVersion>
+		<RootNamespace>FaceLivenessBridge</RootNamespace>
+		<Nullable>disable</Nullable>
+		<ImplicitUsings>true</ImplicitUsings>
+		<IsBindingProject>true</IsBindingProject>
+		<!--
+			Ship the binding as a plain assembly rather than embedding the frameworks inside it:
+			the engine alone is tens of megabytes, and the app links them anyway.
+		-->
+		<NoBindingEmbedding>true</NoBindingEmbedding>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ObjcBindingApiDefinition Include="ApiDefinition.cs" />
+		<ObjcBindingCoreSource Include="StructsAndEnums.cs" />
+	</ItemGroup>
+
+	<!--
+		The bridge, the kit it calls, and the engine the kit calls. None of them are in git — see
+		../FaceLiveness.Net.Maui/Platforms/iOS/Frameworks/README.md. Each is referenced only when
+		present so a clean checkout still restores; the app's own build fails with a named message
+		listing whichever are missing.
+	-->
+	<ItemGroup>
+		<NativeReference Include="..\FaceLiveness.Net.Maui\Platforms\iOS\Frameworks\FaceLivenessBridge.xcframework"
+		                 Condition="Exists('..\FaceLiveness.Net.Maui\Platforms\iOS\Frameworks\FaceLivenessBridge.xcframework')">
+			<Kind>Framework</Kind>
+			<SmartLink>False</SmartLink>
+			<ForceLoad>True</ForceLoad>
+		</NativeReference>
+		<NativeReference Include="..\FaceLiveness.Net.Maui\Platforms\iOS\Frameworks\FaceLivenessKit.xcframework"
+		                 Condition="Exists('..\FaceLiveness.Net.Maui\Platforms\iOS\Frameworks\FaceLivenessKit.xcframework')">
+			<Kind>Framework</Kind>
+			<SmartLink>False</SmartLink>
+			<ForceLoad>True</ForceLoad>
+		</NativeReference>
+		<NativeReference Include="..\FaceLiveness.Net.Maui\Platforms\iOS\Frameworks\facerecognitionsdk.framework"
+		                 Condition="Exists('..\FaceLiveness.Net.Maui\Platforms\iOS\Frameworks\facerecognitionsdk.framework')">
+			<Kind>Framework</Kind>
+			<SmartLink>False</SmartLink>
+			<ForceLoad>True</ForceLoad>
+		</NativeReference>
+		<NativeReference Include="..\FaceLiveness.Net.Maui\Platforms\iOS\Frameworks\FacePluginSDK.xcframework"
+		                 Condition="Exists('..\FaceLiveness.Net.Maui\Platforms\iOS\Frameworks\FacePluginSDK.xcframework')">
+			<Kind>Framework</Kind>
+			<SmartLink>False</SmartLink>
+			<ForceLoad>True</ForceLoad>
+		</NativeReference>
+		<NativeReference Include="..\FaceLiveness.Net.Maui\Platforms\iOS\Frameworks\FacePlugin.xcframework"
+		                 Condition="Exists('..\FaceLiveness.Net.Maui\Platforms\iOS\Frameworks\FacePlugin.xcframework')">
+			<Kind>Framework</Kind>
+			<SmartLink>False</SmartLink>
+			<ForceLoad>True</ForceLoad>
+		</NativeReference>
+		<NativeReference Include="..\FaceLiveness.Net.Maui\Platforms\iOS\Frameworks\FaceDetect.xcframework"
+		                 Condition="Exists('..\FaceLiveness.Net.Maui\Platforms\iOS\Frameworks\FaceDetect.xcframework')">
+			<Kind>Framework</Kind>
+			<SmartLink>False</SmartLink>
+			<ForceLoad>True</ForceLoad>
+		</NativeReference>
+	</ItemGroup>
+
+</Project>

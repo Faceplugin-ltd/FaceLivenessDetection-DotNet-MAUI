@@ -1,0 +1,136 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFrameworks>net8.0-android;net8.0-ios</TargetFrameworks>
+		<OutputType>Exe</OutputType>
+		<RootNamespace>FaceLiveness.Net.Maui</RootNamespace>
+		<UseMaui>true</UseMaui>
+		<SingleProject>true</SingleProject>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<ApplicationTitle>FacePlugin Face Liveness</ApplicationTitle>
+		<ApplicationId>com.faceplugin.faceliveness</ApplicationId>
+		<ApplicationId Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">com.faceplugin.faceliveness.app</ApplicationId>
+		<ApplicationDisplayVersion>2.0</ApplicationDisplayVersion>
+		<ApplicationVersion>2</ApplicationVersion>
+		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">15.0</SupportedOSPlatformVersion>
+		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">24.0</SupportedOSPlatformVersion>
+		<CodesignKey Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">Apple Development</CodesignKey>
+		<DevelopmentTeam Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">F5UMQMPPB8</DevelopmentTeam>
+		<CodesignProvision Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">Automatic</CodesignProvision>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<MauiIcon Include="Resources\AppIcon\appicon.png" Color="#000000" />
+		<MauiSplashScreen Include="Resources\Splash\splash.png" Color="#0B0B12" BaseSize="128,128" />
+		<MauiImage Include="Resources\Images\*" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.0" />
+	</ItemGroup>
+
+	<!--
+		Android. The app launches the NATIVE liveness screens, so it binds the two libraries the
+		native app is built from, plus the engine they call. All three are vendor-sized binaries
+		kept out of git — see Platforms/Android/libs/README.md.
+	-->
+	<PropertyGroup Condition="'$(TargetFramework)' == 'net8.0-android'">
+		<!--
+			The engine AAR is packaged but not bound (see below), so the kit's references to
+			FaceRecognitionSDK and its nested types have no C# counterpart to resolve against. The
+			classes are on the runtime classpath and the app never names them, so the binding
+			generator's complaints about them are noise.
+		-->
+		<NoWarn>$(NoWarn);BG8401;BG8605;BG8606</NoWarn>
+	</PropertyGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)' == 'net8.0-android'">
+		<PackageReference Include="Xamarin.AndroidX.AppCompat" Version="1.7.0.5" />
+		<PackageReference Include="Xamarin.AndroidX.Camera.Core" Version="1.4.1.1" />
+		<PackageReference Include="Xamarin.AndroidX.Camera.Camera2" Version="1.4.1.1" />
+		<PackageReference Include="Xamarin.AndroidX.Camera.Lifecycle" Version="1.4.1.1" />
+		<PackageReference Include="Xamarin.AndroidX.Camera.View" Version="1.4.1.1" />
+		<!--
+			CameraX and AppCompat pull the AndroidX Lifecycle bindings in at two different
+			versions; pinning the ones they disagree over settles it. kotlin-stdlib, which the
+			vendored Kotlin libraries need, arrives transitively with CameraX.
+		-->
+		<PackageReference Include="Xamarin.AndroidX.Lifecycle.LiveData.Core" Version="2.8.7.2" />
+		<PackageReference Include="Xamarin.AndroidX.Lifecycle.Runtime" Version="2.8.7.2" />
+		<!--
+			MAUI's navigation stack still asks for collection-ktx 1.2, whose classes AndroidX has
+			since folded into collection-jvm; both on the classpath is a duplicate-class failure in
+			D8. The matching facade version is empty, so only collection-jvm defines them.
+		-->
+		<PackageReference Include="Xamarin.AndroidX.Collection.Ktx" Version="1.4.5.2" />
+		<PackageReference Include="Xamarin.AndroidX.Lifecycle.ViewModel.Ktx" Version="2.8.7.2" />
+		<PackageReference Include="Xamarin.AndroidX.Lifecycle.Runtime.Ktx" Version="2.8.7.2" />
+		<PackageReference Include="Xamarin.AndroidX.Lifecycle.LiveData.Core.Ktx" Version="2.8.7.2" />
+		<PackageReference Include="Xamarin.AndroidX.Activity.Ktx" Version="1.9.3.2" />
+		<PackageReference Include="Xamarin.AndroidX.Fragment.Ktx" Version="1.8.5.2" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)' == 'net8.0-android'">
+		<!--
+			The engine. Packaged but not bound: the app never calls it directly — the kit does — and
+			one of its classes overrides finalize(), which the C# binding generator cannot express.
+		-->
+		<AndroidLibrary Include="Platforms\Android\libs\facerecognitionsdk.aar" Bind="false" />
+		<!-- face-liveness-kit: the engine lifecycle, camera frames and per-frame face attributes. -->
+		<AndroidLibrary Include="Platforms\Android\libs\face-liveness-kit.aar" />
+		<!-- face-liveness-active: the whole guided active-liveness screen, launched for a result. -->
+		<AndroidLibrary Include="Platforms\Android\libs\face-liveness-active.aar" />
+	</ItemGroup>
+
+	<!--
+		Fail with a named message rather than building an app whose liveness screens are absent.
+		The previous build guarded these with Exists(), which silently produced an app that could
+		not run.
+	-->
+	<Target Name="CheckAndroidRuntime" BeforeTargets="CoreCompile"
+	        Condition="'$(TargetFramework)' == 'net8.0-android'">
+		<Error Condition="!Exists('Platforms\Android\libs\facerecognitionsdk.aar')"
+		       Text="Missing Platforms/Android/libs/facerecognitionsdk.aar — the Face Liveness engine. See Platforms/Android/libs/README.md." />
+		<Error Condition="!Exists('Platforms\Android\libs\face-liveness-kit.aar')"
+		       Text="Missing Platforms/Android/libs/face-liveness-kit.aar — build it in Face-LivenessDetection-Android with `gradlew :face-liveness-kit:assembleRelease`. See Platforms/Android/libs/README.md." />
+		<Error Condition="!Exists('Platforms\Android\libs\face-liveness-active.aar')"
+		       Text="Missing Platforms/Android/libs/face-liveness-active.aar — build it in Face-LivenessDetection-Android with `gradlew :face-liveness-active:assembleRelease`. See Platforms/Android/libs/README.md." />
+	</Target>
+
+	<!--
+		iOS. The liveness screens come from FaceLivenessBridge.framework — the Objective-C face of
+		Face-LivenessDetection-iOS's Swift screens, built there with `scripts/build_bridge.sh`. The
+		binding project owns the NativeReferences; referencing both here would link them twice.
+
+		Six bundles belong in Platforms/iOS/Frameworks and none are in git — see its README.md.
+	-->
+	<ItemGroup Condition="'$(TargetFramework)' == 'net8.0-ios'">
+		<ProjectReference Include="..\FaceLivenessBridge.Binding\FaceLivenessBridge.Binding.csproj" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)' == 'net8.0-ios'">
+		<_FaceLivenessIosFramework Include="FaceLivenessBridge.xcframework" />
+		<_FaceLivenessIosFramework Include="FaceLivenessKit.xcframework" />
+		<_FaceLivenessIosFramework Include="facerecognitionsdk.framework" />
+		<_FaceLivenessIosFramework Include="FacePluginSDK.xcframework" />
+		<_FaceLivenessIosFramework Include="FacePlugin.xcframework" />
+		<_FaceLivenessIosFramework Include="FaceDetect.xcframework" />
+	</ItemGroup>
+
+	<!--
+		Fail with a named message rather than building an app whose liveness screens are absent. The
+		previous build guarded these with Exists(), which silently produced an app that could not run.
+	-->
+	<Target Name="CheckIosRuntime" BeforeTargets="CoreCompile"
+	        Condition="'$(TargetFramework)' == 'net8.0-ios'">
+		<ItemGroup>
+			<_FaceLivenessIosMissing
+				Include="@(_FaceLivenessIosFramework)"
+				Condition="!Exists('Platforms\iOS\Frameworks\%(Identity)')" />
+		</ItemGroup>
+		<Error Condition="'@(_FaceLivenessIosMissing)' != ''"
+		       Text="Missing from Platforms/iOS/Frameworks: @(_FaceLivenessIosMissing, ', '). The two FaceLiveness* bundles are built from Face-LivenessDetection-iOS with scripts/build_bridge.sh; the rest come from the Face-Recognition-LivenessDetection-iOS release. See Platforms/iOS/Frameworks/README.md." />
+	</Target>
+
+</Project>
