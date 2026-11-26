@@ -1,33 +1,40 @@
 # iOS frameworks
 
-Six bundles belong here and **none of them are in git**.
+Six bundles belong here and **none of them are in git**. All six are downloads; nothing has to be
+built, so you do not need a Mac to use this repository.
 
-| Bundle | What it is | Where it comes from |
-| ------ | ---------- | ------------------- |
-| `FaceLivenessBridge.xcframework` | The Objective-C face of the native liveness screens | built from `Face-LivenessDetection-iOS` |
-| `FaceLivenessKit.xcframework` | The engine lifecycle the bridge calls | built from `Face-LivenessDetection-iOS` |
-| `facerecognitionsdk.framework` | The engine wrapper (FacePlugin engine build) | Face-Recognition-LivenessDetection-iOS release |
-| `FacePluginSDK.xcframework` | Vendor runtime the wrapper links | same release |
-| `FacePlugin.xcframework` | Vendor runtime the wrapper links | same release |
-| `FaceDetect.xcframework` | Vendor detector the wrapper links | same release |
+| Bundle | What it is | Download |
+| ------ | ---------- | -------- |
+| `FaceLivenessBridge.xcframework` | The Objective-C face of the native liveness screens | `bridge.zip` on the [FaceLivenessDetection-iOS release](https://github.com/Faceplugin-ltd/FaceLivenessDetection-iOS/releases/latest) |
+| `FaceLivenessKit.xcframework` | The engine lifecycle the bridge calls | the same `bridge.zip` |
+| `facerecognitionsdk.framework` | The engine wrapper | `runtime.zip` on the [FaceRecognition-LivenessDetection-iOS release](https://github.com/Faceplugin-ltd/FaceRecognition-LivenessDetection-iOS/releases/tag/latest) |
+| `FacePluginSDK.xcframework` | Vendor runtime the wrapper links | the same `runtime.zip` |
+| `FacePlugin.xcframework` | Vendor runtime the wrapper links | the same `runtime.zip` |
+| `FaceDetect.xcframework` | Vendor detector the wrapper links | the same `runtime.zip` |
 
-## Building the first two
+Unzip both archives into this folder.
+
+## Why a bridge at all
 
 The liveness screens in
-[Face-LivenessDetection-iOS](https://github.com/Faceplugin-ltd/Face-LivenessDetection-iOS) are
+[FaceLivenessDetection-iOS](https://github.com/Faceplugin-ltd/FaceLivenessDetection-iOS) are
 Swift, and .NET for iOS can only bind Objective-C. That repository therefore publishes
 **FaceLivenessBridge**, a framework target whose only job is to put an `@objc` face on the same
 screens — it compiles the very same source files the app does, so the two cannot drift.
 
+<details>
+<summary>Rebuilding the bridge yourself instead</summary>
+
+Requires macOS with Xcode:
+
 ```bash
-cd Face-LivenessDetection-iOS
+cd FaceLivenessDetection-iOS
 ./scripts/build_bridge.sh
 cp -R build/xcframeworks/FaceLivenessBridge.xcframework \
       build/xcframeworks/FaceLivenessKit.xcframework \
       <this repo>/src/FaceLiveness.Net.Maui/Platforms/iOS/Frameworks/
 ```
-
-Then the four engine bundles from that repository's root, which it needs too.
+</details>
 
 **Device only** (`ios-arm64`). The engine ships no simulator slice, which is the same reason the
 app only runs on a physical phone.

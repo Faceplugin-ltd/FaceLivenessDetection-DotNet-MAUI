@@ -60,9 +60,9 @@ own module rather than in a library: this app carries `PassiveLivenessActivity` 
 `PassiveFaceView`, still running on the kit's `CameraPreview`, `CameraFrameUtils` and
 `FaceEngine.detect`, so only the drawing is C#.
 
-**iOS** goes through `FaceLivenessBridge.xcframework`, built from
-[FaceLivenessDetection-iOS](https://github.com/Faceplugin-ltd/FaceLivenessDetection-iOS) with its
-`scripts/build_bridge.sh`. The screens there are Swift, and .NET for iOS reads Objective-C, so that
+**iOS** goes through `FaceLivenessBridge.xcframework`, published by
+[FaceLivenessDetection-iOS](https://github.com/Faceplugin-ltd/FaceLivenessDetection-iOS) as part of
+`bridge.zip` on its Releases page. The screens there are Swift, and .NET for iOS reads Objective-C, so that
 framework puts an `@objc` face — `FPLEngine`, `FPLActiveOptions`, `FPLActiveResult`, `FPLLiveness`
 — on the *same source files* the FaceLivenessSDK app compiles. `src/FaceLivenessBridge.Binding/`
 binds it; `Platforms/iOS/FaceLiveness.iOS.cs` translates it to the shared model.
@@ -128,19 +128,16 @@ src/FaceLiveness.Net.Maui/Platforms/Android/libs/face-liveness-kit.aar
 src/FaceLiveness.Net.Maui/Platforms/Android/libs/face-liveness-active.aar
 ```
 
-The engine comes from the
-[FaceRecognition-LivenessDetection-Android release](https://github.com/Faceplugin-ltd/FaceRecognition-LivenessDetection-Android/releases/tag/latest),
-or from `FaceLivenessDetection-Android/libs/`. The two libraries are built from that same
-repository:
+All three are downloads — nothing has to be built:
 
-```bash
-cd FaceLivenessDetection-Android
-./gradlew :face-liveness-kit:assembleRelease :face-liveness-active:assembleRelease
-```
+| File | Download |
+| ---- | -------- |
+| `facerecognitionsdk.aar` | [FaceRecognition-LivenessDetection-Android release](https://github.com/Faceplugin-ltd/FaceRecognition-LivenessDetection-Android/releases/tag/latest) |
+| `face-liveness-kit.aar` | `liveness-libs.zip` on the [FaceLivenessDetection-Android release](https://github.com/Faceplugin-ltd/FaceLivenessDetection-Android/releases/latest) |
+| `face-liveness-active.aar` | the same `liveness-libs.zip` |
 
-then copied in under the names above — `Platforms/Android/libs/README.md` has the exact commands.
-They are also published to Maven Central as `com.faceplugin:face-liveness-kit` and
-`com.faceplugin:face-liveness-active`.
+Unzip `liveness-libs.zip` and put both AARs in the folder above, beside the engine.
+`Platforms/Android/libs/README.md` has the exact paths.
 
 On iOS, six bundles:
 
@@ -153,15 +150,14 @@ src/FaceLiveness.Net.Maui/Platforms/iOS/Frameworks/FacePlugin.xcframework
 src/FaceLiveness.Net.Maui/Platforms/iOS/Frameworks/FaceDetect.xcframework
 ```
 
-The first two come from FaceLivenessDetection-iOS:
-
-```bash
-cd FaceLivenessDetection-iOS
-./scripts/build_bridge.sh
-```
-
-The other four are the engine, from the
+The first two ship as `bridge.zip` on the
+[FaceLivenessDetection-iOS release](https://github.com/Faceplugin-ltd/FaceLivenessDetection-iOS/releases/latest).
+The other four are the engine, as `runtime.zip` on the
 [FaceRecognition-LivenessDetection-iOS release](https://github.com/Faceplugin-ltd/FaceRecognition-LivenessDetection-iOS/releases/tag/latest).
+Unzip both into the folder above.
+
+Because the bridge is a download, **you do not need a Mac to use this repository** — only to
+rebuild the bridge yourself, which the iOS repository documents.
 
 The build fails with a named message listing whatever is absent on either platform, so a missing
 runtime is reported before the compiler runs rather than as a missing-type error.
