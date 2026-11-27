@@ -119,8 +119,9 @@
 	</ItemGroup>
 
 	<!--
-		Fail with a named message rather than building an app whose liveness screens are absent. The
-		previous build guarded these with Exists(), which silently produced an app that could not run.
+		Fail with a named message rather than building an app whose liveness screens are absent.
+		A directory Exists() check is not enough: a bad bridge.zip once shipped
+		FaceLivenessBridge.xcframework with only Info.plist (no ios-arm64 binary) and MT158 fired later.
 	-->
 	<Target Name="CheckIosRuntime" BeforeTargets="CoreCompile"
 	        Condition="'$(TargetFramework)' == 'net8.0-ios'">
@@ -128,9 +129,15 @@
 			<_FaceLivenessIosMissing
 				Include="@(_FaceLivenessIosFramework)"
 				Condition="!Exists('Platforms\iOS\Frameworks\%(Identity)')" />
+			<_FaceLivenessIosStub Include="FaceLivenessBridge.xcframework"
+				Condition="Exists('Platforms\iOS\Frameworks\FaceLivenessBridge.xcframework') And !Exists('Platforms\iOS\Frameworks\FaceLivenessBridge.xcframework\ios-arm64\FaceLivenessBridge.framework\FaceLivenessBridge')" />
+			<_FaceLivenessIosStub Include="FaceLivenessKit.xcframework"
+				Condition="Exists('Platforms\iOS\Frameworks\FaceLivenessKit.xcframework') And !Exists('Platforms\iOS\Frameworks\FaceLivenessKit.xcframework\ios-arm64\FaceLivenessKit.framework\FaceLivenessKit')" />
 		</ItemGroup>
 		<Error Condition="'@(_FaceLivenessIosMissing)' != ''"
-		       Text="Missing from Platforms/iOS/Frameworks: @(_FaceLivenessIosMissing, ', '). The two FaceLiveness* bundles are built from Face-LivenessDetection-iOS with scripts/build_bridge.sh; the rest come from the Face-Recognition-LivenessDetection-iOS release. See Platforms/iOS/Frameworks/README.md." />
+		       Text="Missing from Platforms/iOS/Frameworks: @(_FaceLivenessIosMissing, ', '). Run python3 run_ios.py (downloads runtime.zip + bridge.zip) or see Platforms/iOS/Frameworks/README.md." />
+		<Error Condition="'@(_FaceLivenessIosStub)' != ''"
+		       Text="Incomplete iOS framework(s) (Info.plist only, no binary): @(_FaceLivenessIosStub, ', '). Delete Platforms/iOS/Frameworks/FaceLiveness*.xcframework and re-run python3 run_ios.py after uploading a complete bridge.zip from Face-LivenessDetection-iOS/scripts/build_bridge.sh." />
 	</Target>
 
 </Project>

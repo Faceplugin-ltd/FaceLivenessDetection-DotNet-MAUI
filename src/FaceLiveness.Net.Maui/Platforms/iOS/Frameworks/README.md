@@ -7,6 +7,12 @@ built, so you do not need a Mac to use this repository.
 | ------ | ---------- | -------- |
 | `FaceLivenessBridge.xcframework` | The Objective-C face of the native liveness screens | `bridge.zip` on the [FaceLivenessDetection-iOS release](https://github.com/Faceplugin-ltd/FaceLivenessDetection-iOS/releases/latest) |
 | `FaceLivenessKit.xcframework` | The engine lifecycle the bridge calls | the same `bridge.zip` |
+
+A usable `FaceLivenessBridge.xcframework` must contain
+`ios-arm64/FaceLivenessBridge.framework/FaceLivenessBridge` (the Mach-O). An Info.plist-only
+stub (from a failed `xcodebuild -create-xcframework` without `-allow-internal-distribution`)
+causes MT158 at link time — delete the stub folders and re-fetch after a good `bridge.zip` is
+published.
 | `facerecognitionsdk.framework` | The engine wrapper | `runtime.zip` on the [FaceRecognition-LivenessDetection-iOS release](https://github.com/Faceplugin-ltd/FaceRecognition-LivenessDetection-iOS/releases/tag/latest) |
 | `FacePluginSDK.xcframework` | Vendor runtime the wrapper links | the same `runtime.zip` |
 | `FacePlugin.xcframework` | Vendor runtime the wrapper links | the same `runtime.zip` |

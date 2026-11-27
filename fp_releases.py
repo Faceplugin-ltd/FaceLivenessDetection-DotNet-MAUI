@@ -91,8 +91,46 @@ def _download(url: str, dest: Path, page: str) -> None:
         _die(f"download failed: {exc}\nGet the file from {page}")
 
 
+def _framework_binary(path: Path) -> Path | None:
+    """Return the Mach-O inside a .framework / ios-arm64 slice of an .xcframework."""
+    if path.name.endswith(".xcframework"):
+        slices = sorted(path.glob("ios-arm64/*.framework"))
+        if not slices:
+            return None
+        fw = slices[0]
+        binary = fw / fw.stem
+        return binary if binary.is_file() and binary.stat().st_size > 0 else None
+    if path.name.endswith(".framework"):
+        binary = path / path.stem
+        return binary if binary.is_file() and binary.stat().st_size > 0 else None
+    if path.is_file() and path.stat().st_size > 0:
+        return path
+    return None
+
+
+def _ios_artifact_ok(path: Path) -> bool:
+    """True when the engine/bridge artifact exists and is not an Info.plist-only stub."""
+    return _framework_binary(path) is not None or (
+        path.is_file() and path.stat().st_size > 0 and not path.name.endswith((".framework", ".xcframework"))
+    )
+
+
+def _remove_incomplete(path: Path) -> None:
+    if not path.exists():
+        return
+    if path.is_dir():
+        shutil.rmtree(path)
+    else:
+        path.unlink(missing_ok=True)
+
+
 def _copy_if_missing(src: Path, dest: Path) -> bool:
-    if dest.exists() or not src.exists():
+    if _ios_artifact_ok(dest) or not src.exists():
+        return False
+    if dest.exists() and not _ios_artifact_ok(dest):
+        print(f"replacing incomplete {dest}")
+        _remove_incomplete(dest)
+    if not _ios_artifact_ok(src):
         return False
     dest.parent.mkdir(parents=True, exist_ok=True)
     if src.is_dir():
@@ -189,20 +227,26 @@ def ensure_ios_engine(root: Path, dest: Path, *, with_bridge: bool = False) -> N
     need = list(ENGINE_IOS_NAMES)
     if with_bridge:
         need.extend(BRIDGE_IOS_NAMES)
-    if all((dest / n).exists() for n in need):
+    # Drop Info.plist-only stubs left by a bad bridge.zip / partial create-xcframework.
+    for n in need:
+        p = dest / n
+        if p.exists() and not _ios_artifact_ok(p):
+            print(f"removing incomplete {p}")
+            _remove_incomplete(p)
+    if all(_ios_artifact_ok(dest / n) for n in need):
         return
 
     apps = root.parent
     for sibling_name in SIBLING_IOS:
         sibling = apps / sibling_name
-        if all((sibling / n).exists() for n in ENGINE_IOS_NAMES):
+        if all(_ios_artifact_ok(sibling / n) for n in ENGINE_IOS_NAMES):
             dest.mkdir(parents=True, exist_ok=True)
             for n in ENGINE_IOS_NAMES:
                 _copy_if_missing(sibling / n, dest / n)
             _slice_xcframeworks(dest)
             break
 
-    if with_bridge and not all((dest / n).exists() for n in BRIDGE_IOS_NAMES):
+    if with_bridge and not all(_ios_artifact_ok(dest / n) for n in BRIDGE_IOS_NAMES):
         # Bridge only ships on Liveness iOS release / native checkout build output.
         liv = apps / "Face-LivenessDetection-iOS"
         for n in BRIDGE_IOS_NAMES:
@@ -213,12 +257,12 @@ def ensure_ios_engine(root: Path, dest: Path, *, with_bridge: bool = False) -> N
                 if _copy_if_missing(cand, dest / n):
                     break
 
-    if all((dest / n).exists() for n in need):
+    if all(_ios_artifact_ok(dest / n) for n in need):
         return
 
     with tempfile.TemporaryDirectory(prefix="fp-ios-") as tmp:
         tmp_path = Path(tmp)
-        if not all((dest / n).exists() for n in ENGINE_IOS_NAMES):
+        if not all(_ios_artifact_ok(dest / n) for n in ENGINE_IOS_NAMES):
             zpath = tmp_path / "runtime.zip"
             _download(RUNTIME_ZIP_URL, zpath, RUNTIME_PAGE)
             extract_root = tmp_path / "runtime"
@@ -231,18 +275,18 @@ def ensure_ios_engine(root: Path, dest: Path, *, with_bridge: bool = False) -> N
             dest.mkdir(parents=True, exist_ok=True)
             for n in ENGINE_IOS_NAMES:
                 src = extract_root / n
-                if not src.exists():
-                    _die(f"runtime.zip missing {n}\nGet it from {RUNTIME_PAGE}")
+                if not _ios_artifact_ok(src):
+                    _die(f"runtime.zip missing a usable {n}\nGet it from {RUNTIME_PAGE}")
+                if (dest / n).exists():
+                    _remove_incomplete(dest / n)
                 if src.is_dir():
-                    if (dest / n).exists():
-                        shutil.rmtree(dest / n)
                     shutil.copytree(src, dest / n, symlinks=True)
                 else:
                     shutil.copy2(src, dest / n)
                 print(f"staged {dest / n}")
             _slice_xcframeworks(dest)
 
-        if with_bridge and not all((dest / n).exists() for n in BRIDGE_IOS_NAMES):
+        if with_bridge and not all(_ios_artifact_ok(dest / n) for n in BRIDGE_IOS_NAMES):
             zpath = tmp_path / "bridge.zip"
             _download(BRIDGE_ZIP_URL, zpath, BRIDGE_PAGE)
             extract_root = tmp_path / "bridge"
@@ -254,14 +298,18 @@ def ensure_ios_engine(root: Path, dest: Path, *, with_bridge: bool = False) -> N
                     zf.extract(member, extract_root)
             for n in BRIDGE_IOS_NAMES:
                 src = extract_root / n
-                if not src.exists():
-                    _die(f"bridge.zip missing {n}\nGet it from {BRIDGE_PAGE}")
+                if not _ios_artifact_ok(src):
+                    _die(
+                        f"bridge.zip is missing a usable {n} (Info.plist-only stubs are not enough).\n"
+                        f"Rebuild with Face-LivenessDetection-iOS/scripts/build_bridge.sh and "
+                        f"re-upload bridge.zip to {BRIDGE_PAGE}"
+                    )
                 if (dest / n).exists():
-                    shutil.rmtree(dest / n)
+                    _remove_incomplete(dest / n)
                 shutil.copytree(src, dest / n, symlinks=True)
                 print(f"staged {dest / n}")
 
-    missing = [n for n in need if not (dest / n).exists()]
+    missing = [n for n in need if not _ios_artifact_ok(dest / n)]
     if missing:
         _die(
             "missing iOS runtimes: "
