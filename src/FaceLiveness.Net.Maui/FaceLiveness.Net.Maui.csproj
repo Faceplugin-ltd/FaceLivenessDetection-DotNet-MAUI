@@ -109,19 +109,23 @@
 		<ProjectReference Include="..\FaceLivenessBridge.Binding\FaceLivenessBridge.Binding.csproj" />
 	</ItemGroup>
 
+	<!--
+		Binding links the sliced ios-arm64 *.framework copies (Recognition MAUI pattern).
+		fp_releases.py still downloads the xcframeworks / bridge.zip, then slices them.
+	-->
 	<ItemGroup Condition="'$(TargetFramework)' == 'net8.0-ios'">
-		<_FaceLivenessIosFramework Include="FaceLivenessBridge.xcframework" />
-		<_FaceLivenessIosFramework Include="FaceLivenessKit.xcframework" />
+		<_FaceLivenessIosFramework Include="FaceLivenessBridge.framework" />
+		<_FaceLivenessIosFramework Include="FaceLivenessKit.framework" />
 		<_FaceLivenessIosFramework Include="facerecognitionsdk.framework" />
-		<_FaceLivenessIosFramework Include="FacePluginSDK.xcframework" />
-		<_FaceLivenessIosFramework Include="FacePlugin.xcframework" />
-		<_FaceLivenessIosFramework Include="FaceDetect.xcframework" />
+		<_FaceLivenessIosFramework Include="FacePluginSDK.framework" />
+		<_FaceLivenessIosFramework Include="FacePPlugin.framework" />
+		<_FaceLivenessIosFramework Include="FaceDetect.framework" />
 	</ItemGroup>
 
 	<!--
 		Fail with a named message rather than building an app whose liveness screens are absent.
 		A directory Exists() check is not enough: a bad bridge.zip once shipped
-		FaceLivenessBridge.xcframework with only Info.plist (no ios-arm64 binary) and MT158 fired later.
+		FaceLivenessBridge with only Info.plist (no binary) and MT158 fired later.
 	-->
 	<Target Name="CheckIosRuntime" BeforeTargets="CoreCompile"
 	        Condition="'$(TargetFramework)' == 'net8.0-ios'">
@@ -129,15 +133,23 @@
 			<_FaceLivenessIosMissing
 				Include="@(_FaceLivenessIosFramework)"
 				Condition="!Exists('Platforms\iOS\Frameworks\%(Identity)')" />
-			<_FaceLivenessIosStub Include="FaceLivenessBridge.xcframework"
-				Condition="Exists('Platforms\iOS\Frameworks\FaceLivenessBridge.xcframework') And !Exists('Platforms\iOS\Frameworks\FaceLivenessBridge.xcframework\ios-arm64\FaceLivenessBridge.framework\FaceLivenessBridge')" />
-			<_FaceLivenessIosStub Include="FaceLivenessKit.xcframework"
-				Condition="Exists('Platforms\iOS\Frameworks\FaceLivenessKit.xcframework') And !Exists('Platforms\iOS\Frameworks\FaceLivenessKit.xcframework\ios-arm64\FaceLivenessKit.framework\FaceLivenessKit')" />
+			<_FaceLivenessIosStub Include="FaceLivenessBridge.framework"
+				Condition="Exists('Platforms\iOS\Frameworks\FaceLivenessBridge.framework') And !Exists('Platforms\iOS\Frameworks\FaceLivenessBridge.framework\FaceLivenessBridge')" />
+			<_FaceLivenessIosStub Include="FaceLivenessKit.framework"
+				Condition="Exists('Platforms\iOS\Frameworks\FaceLivenessKit.framework') And !Exists('Platforms\iOS\Frameworks\FaceLivenessKit.framework\FaceLivenessKit')" />
+			<_FaceLivenessIosStub Include="FaceDetect.framework"
+				Condition="Exists('Platforms\iOS\Frameworks\FaceDetect.framework') And !Exists('Platforms\iOS\Frameworks\FaceDetect.framework\FaceDetect')" />
 		</ItemGroup>
 		<Error Condition="'@(_FaceLivenessIosMissing)' != ''"
 		       Text="Missing from Platforms/iOS/Frameworks: @(_FaceLivenessIosMissing, ', '). Run python3 run_ios.py (downloads runtime.zip + bridge.zip) or see Platforms/iOS/Frameworks/README.md." />
 		<Error Condition="'@(_FaceLivenessIosStub)' != ''"
-		       Text="Incomplete iOS framework(s) (Info.plist only, no binary): @(_FaceLivenessIosStub, ', '). Delete Platforms/iOS/Frameworks/FaceLiveness*.xcframework and re-run python3 run_ios.py after uploading a complete bridge.zip from Face-LivenessDetection-iOS/scripts/build_bridge.sh." />
+		       Text="Incomplete iOS framework(s) (Info.plist only, no binary): @(_FaceLivenessIosStub, ', '). Delete Platforms/iOS/Frameworks and re-run python3 run_ios.py after uploading a complete bridge.zip from Face-LivenessDetection-iOS/scripts/build_bridge.sh." />
+	</Target>
+
+	<!-- Nested frameworks must be sealed with the app identity or device launch fails. -->
+	<Target Name="SignNestedFrameworks" BeforeTargets="BeforeCodeSign"
+	        Condition="'$(TargetFramework)' == 'net8.0-ios' And Exists('$(AppBundleDir)\Frameworks')">
+		<Exec Command="bash &quot;$(MSBuildProjectDirectory)/Platforms/iOS/scripts/sign_nested_frameworks.sh&quot; &quot;$(AppBundleDir)&quot; &quot;$(_CodeSigningKey)&quot;" />
 	</Target>
 
 </Project>

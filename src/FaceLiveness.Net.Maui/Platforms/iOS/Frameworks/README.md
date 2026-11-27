@@ -1,24 +1,24 @@
 # iOS frameworks
 
-Six bundles belong here and **none of them are in git**. All six are downloads; nothing has to be
-built, so you do not need a Mac to use this repository.
+Six bundles belong here and **none of them are in git**. `python3 run_ios.py` downloads
+`runtime.zip` + `bridge.zip` and slices the ios-arm64 `.framework` copies the binding links.
 
-| Bundle | What it is | Download |
-| ------ | ---------- | -------- |
-| `FaceLivenessBridge.xcframework` | The Objective-C face of the native liveness screens | `bridge.zip` on the [FaceLivenessDetection-iOS release](https://github.com/Faceplugin-ltd/FaceLivenessDetection-iOS/releases/latest) |
-| `FaceLivenessKit.xcframework` | The engine lifecycle the bridge calls | the same `bridge.zip` |
-
-A usable `FaceLivenessBridge.xcframework` must contain
-`ios-arm64/FaceLivenessBridge.framework/FaceLivenessBridge` (the Mach-O). An Info.plist-only
-stub (from a failed `xcodebuild -create-xcframework` without `-allow-internal-distribution`)
-causes MT158 at link time — delete the stub folders and re-fetch after a good `bridge.zip` is
-published.
+| Bundle | What it is | Source |
+| ------ | ---------- | ------ |
+| `FaceLivenessBridge.framework` | The Objective-C face of the native liveness screens | `bridge.zip` on the [FaceLivenessDetection-iOS release](https://github.com/Faceplugin-ltd/FaceLivenessDetection-iOS/releases/latest) |
+| `FaceLivenessKit.framework` | The engine lifecycle the bridge calls | the same `bridge.zip` |
 | `facerecognitionsdk.framework` | The engine wrapper | `runtime.zip` on the [FaceRecognition-LivenessDetection-iOS release](https://github.com/Faceplugin-ltd/FaceRecognition-LivenessDetection-iOS/releases/tag/latest) |
-| `FacePluginSDK.xcframework` | Vendor runtime the wrapper links | the same `runtime.zip` |
-| `FacePlugin.xcframework` | Vendor runtime the wrapper links | the same `runtime.zip` |
-| `FaceDetect.xcframework` | Vendor detector the wrapper links | the same `runtime.zip` |
+| `FacePluginSDK.framework` | Vendor runtime the wrapper links | the same `runtime.zip` |
+| `FacePPlugin.framework` | Vendor runtime the wrapper links (from `FacePlugin.xcframework`) | the same `runtime.zip` |
+| `FaceDetect.framework` | Vendor detector the wrapper links | the same `runtime.zip` |
 
-Unzip both archives into this folder.
+Archives also drop the parent `.xcframework` trees; `fp_releases.py` always re-slices the
+device frameworks the binding project references (same pattern as Face-Recognition MAUI).
+
+A usable bridge must contain a real Mach-O (`FaceLivenessBridge.framework/FaceLivenessBridge`).
+An Info.plist-only stub (from a failed `xcodebuild -create-xcframework` without
+`-allow-internal-distribution`) causes MT158 at link time — delete `Frameworks/` and re-fetch
+after a good `bridge.zip` is published.
 
 ## Why a bridge at all
 
@@ -39,6 +39,7 @@ cd FaceLivenessDetection-iOS
 cp -R build/xcframeworks/FaceLivenessBridge.xcframework \
       build/xcframeworks/FaceLivenessKit.xcframework \
       <this repo>/src/FaceLiveness.Net.Maui/Platforms/iOS/Frameworks/
+# then re-run python3 run_ios.py so fp_releases.py slices the device .framework copies
 ```
 </details>
 
