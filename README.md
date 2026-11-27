@@ -18,10 +18,13 @@
 ## Quick start
 
 - [ ] Clone [FaceLivenessDetection-DotNet-MAUI](https://github.com/Faceplugin-ltd/FaceLivenessDetection-DotNet-MAUI)
-- [ ] Install the .NET 8 SDK and `dotnet workload install maui`
-- [ ] Put three AARs in `src/FaceLiveness.Net.Maui/Platforms/Android/libs/` — [Get the runtime](#get-the-runtime)
-- [ ] `dotnet build -f net8.0-android -t:Run` with a **physical** phone plugged in
+- [ ] Place the native runtime — [Get the runtime](#get-the-runtime)
+- [ ] `python run_android.py` (or `python run_ios.py` on macOS) with a **physical** phone plugged in
 - [ ] Home status shows **Ready** → **Active liveness** / **Passive liveness** unlock
+
+That is the whole setup. The scripts do the rest: the restore, the `dotnet build`, and the install
+onto the phone. They need the .NET 8 SDK with `dotnet workload install maui` on PATH, and stop
+with a named hint if anything is missing.
 
 ## Introduction
 
@@ -163,6 +166,12 @@ The build fails with a named message listing whatever is absent on either platfo
 runtime is reported before the compiler runs rather than as a missing-type error.
 
 ## Run the demo
+
+```bash
+python run_android.py     # downloads Releases assets if missing; or: python run_ios.py on macOS
+```
+
+The runner checks for a device, restores, builds and installs the app. By hand:
 
 ```bash
 dotnet build src/FaceLiveness.Net.Maui/FaceLiveness.Net.Maui.csproj -f net8.0-android -t:Run
